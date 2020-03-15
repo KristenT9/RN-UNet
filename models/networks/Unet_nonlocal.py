@@ -42,45 +42,41 @@ def unet_nonlocal(input_height, input_width,dimension=2,
     return model
 
 
-def xunet_nonlocal(input_height, input_width,dimension=2,
-                  nonlocal_mode='embedded_gaussian', nonlocal_sf=4,bn_layer=True):
+def res_unet_nonlocal(input_height, input_width, dimension=2,
+                      nonlocal_mode='embedded_gaussian', nonlocal_sf=4, bn_layer=True):
     inputs = layers.Input(shape=(input_height, input_width, 6))
 
     #downsampling
-    encoder0 = xconv_block(inputs, 32)
+    encoder0 = res_conv_block(inputs, 32)
     nonlocal0 = NONLocalBlockND(encoder0, encoder0.shape.as_list()[-1] // 4, dimension=dimension, mode=nonlocal_mode,
                                 sub_sample_factor=nonlocal_sf, bn_layer=bn_layer)
     encoder_pool0 = layers.MaxPool2D(2, strides=2)(nonlocal0)
 
 
-    encoder1 = xconv_block(encoder_pool0, 64)
+    encoder1 = res_conv_block(encoder_pool0, 64)
     nonlocal1 = NONLocalBlockND(encoder1,encoder1.shape.as_list()[-1]//4,dimension=dimension,mode=nonlocal_mode,
                               sub_sample_factor=nonlocal_sf,bn_layer=bn_layer)
     encoder_pool1 = layers.MaxPool2D(2,strides=2)(nonlocal1)
 
-    encoder2 = xconv_block(encoder_pool1, 128)
+    encoder2 = res_conv_block(encoder_pool1, 128)
     nonlocal2=NONLocalBlockND(encoder2,encoder2.shape.as_list()[-1]//4,dimension=dimension,mode=nonlocal_mode,
                               sub_sample_factor=nonlocal_sf,bn_layer=bn_layer)
     encoder_pool2=layers.MaxPool2D(2,strides=2)(nonlocal2)
 
 
-    encoder3 = xconv_block(encoder_pool2, 256)
+    encoder3 = res_conv_block(encoder_pool2, 256)
     nonlocal3 = NONLocalBlockND(encoder3, encoder3.shape.as_list()[-1] // 4, dimension=dimension, mode=nonlocal_mode,
                                 sub_sample_factor=nonlocal_sf, bn_layer=bn_layer)
     encoder_pool3 = layers.MaxPool2D(2,strides=2)(nonlocal3)
 
-    #encoder_pool1, encoder1 = xencoder_block(encoder_pool0, 64)
-    #encoder_pool2, encoder2 = xencoder_block(encoder_pool1, 128)
-    #encoder_pool3, encoder3 = xencoder_block(encoder_pool2, 256)
-
-    center = xconv_block(encoder_pool3, 512)
+    center = res_conv_block(encoder_pool3, 512)
     nonlocal4 = NONLocalBlockND(center, center.shape.as_list()[-1] // 4, dimension=dimension, mode=nonlocal_mode,
                                 sub_sample_factor=nonlocal_sf, bn_layer=bn_layer)
     #upsampling
-    decoder3 = xdecoder_block(nonlocal4, encoder3, 256)
-    decoder2 = xdecoder_block(decoder3, encoder2, 128)
-    decoder1 = xdecoder_block(decoder2, encoder1, 64)
-    decoder0 = xdecoder_block(decoder1, encoder0, 32)
+    decoder3 = res_decoder_block(nonlocal4, encoder3, 256)
+    decoder2 = res_decoder_block(decoder3, encoder2, 128)
+    decoder1 = res_decoder_block(decoder2, encoder1, 64)
+    decoder0 = res_decoder_block(decoder1, encoder0, 32)
 
     # with Deep Surpervision
     dsv3 = dsv_block(decoder3, 1, 8)

@@ -334,26 +334,7 @@ def dice_loss(gt,pred):
     loss=1-dice(gt,pred)
     return loss
 
-
-def bce_dice_loss(gt,pred):
-    loss=losses.binary_crossentropy(gt,pred)+dice_loss(gt,pred)
-    return loss
-
-def bce_log_dice_loss(gt,pred):
-    loss=losses.binary_crossentropy(gt,pred)-tf.math.log(dice(gt,pred))
-    return loss
-
-def jacard_coef(gt,pred):
-    smooth=1.
-    y_true_f = tf.reshape(gt,[-1])#K.flatten(y_true)
-    y_pred_f = tf.reshape(pred,[-1])#K.flatten(y_pred)
-    intersection = tf.reduce_sum(y_true_f*y_pred_f)#K.sum(y_true_f * y_pred_f)
-    return (intersection + 1.0) / (tf.reduce_sum(y_pred_f)+tf.reduce_sum(y_true_f)-intersection+smooth)#(K.sum(y_true_f) + K.sum(y_pred_f) - intersection + 1.0)
-
-def jacard_coef_loss(gt, pred):
-    return -jacard_coef(gt, pred)
-
-def xconv_block(input_layers,num_filters):
+def res_conv_block(input_layers, num_filters):
     res_encoder = layers.Conv2D(num_filters, (1, 1), kernel_initializer=initializer, padding="same")(input_layers)
     res_encoder = layers.BatchNormalization()(res_encoder)
     res_encoder = layers.Activation("relu")(res_encoder)
@@ -367,18 +348,18 @@ def xconv_block(input_layers,num_filters):
     encoder = layers.Activation("relu")(encoder)
     return encoder + res_encoder
 
-def xencoder_block(input_layers,num_filters):
-    encoder=xconv_block(input_layers,num_filters)
+def res_encoder_block(input_layers, num_filters):
+    encoder=res_conv_block(input_layers, num_filters)
     encoder_pool=layers.MaxPool2D((2,2),strides=(2,2))(encoder)
     return encoder_pool,encoder
 
-def xdecoder_block(input_layers,concat_tensor,num_filters):
+def res_decoder_block(input_layers, concat_tensor, num_filters):
     decoder = layers.Conv2DTranspose(num_filters, (2, 2), strides=(2, 2), kernel_initializer=initializer,
                                      padding="same")(input_layers)
     decoder = layers.concatenate([decoder, concat_tensor], axis=-1)
     decoder = layers.BatchNormalization()(decoder)
     decoder = layers.Activation("relu")(decoder)
-    decoder = xconv_block(decoder,num_filters)
+    decoder = res_conv_block(decoder, num_filters)
     return decoder
 
 def conv_block(input_layers,num_filters):

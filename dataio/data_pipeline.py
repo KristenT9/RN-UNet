@@ -54,10 +54,8 @@ def data_pipeline_pred(mode,path,augs,index=0):
             f.create_dataset("slices_2d", data=img)
     return
 
-
 def data_pipeline(mode,path,augs,index=0):
     batch_2d_patches = np.zeros((0, patch_h, patch_w, 7))
-    batch_3d_patches = np.zeros((0, patch_h, patch_w, c , 7))
     batch_beta=np.zeros((0))
     for i in range(len(path)):
         img_gt = bp.BrainPipeline(path[i], c, h, w, augs, mode).read_scans_2d()
@@ -77,7 +75,7 @@ if __name__=="__main__":
     path = np.array(random.sample(testpath, 2))
     print(path)
     index=0
-    data_pipeline_pred(mode=mode_list[2],path=path,read_2d=read_2d,augs=[])
+    data_pipeline_pred(mode=mode_list[2],path=path,augs=[])
     with h5py.File(hdf5_path + mode_list[2] + "_2D_data_"+str(index)+".h5", "r") as f:
         img = f["slices_2d"].value[..., 0:6]
     for j in range(img.shape[0]):
